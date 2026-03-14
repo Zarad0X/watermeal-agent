@@ -13,6 +13,8 @@ class AppConfig:
     native_notifications_enabled: bool = True
     launch_at_login: bool = False
     desktop_pet_enabled: bool = True
+    llm_chat_enabled: bool = False
+    llm_model: str = "gpt-4o-mini"
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -30,6 +32,8 @@ class AppConfig:
             ),
             launch_at_login=bool(raw.get("launch_at_login", False)),
             desktop_pet_enabled=bool(raw.get("desktop_pet_enabled", True)),
+            llm_chat_enabled=bool(raw.get("llm_chat_enabled", False)),
+            llm_model=str(raw.get("llm_model", "gpt-4o-mini")),
         )
 
 

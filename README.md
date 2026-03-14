@@ -15,7 +15,9 @@
 - 防连发提醒（用户未操作时有冷却窗口）
 - 睡眠/唤醒后自动恢复调度
 - 错误日志自动落盘
-- 桌面宠物（可拖拽、提醒气泡、点击打开主面板）
+- 桌面宠物（可拖拽、提醒气泡、点击打开聊天）
+- 情绪对话（本地规则版，不触发设置或操作）
+- 可选 LLM 情绪对话（开启后失败会直接显示错误，便于调试）
 - 提醒后支持：
   - 我喝了 / 我吃了
   - 按设置里的分钟数稍后提醒
@@ -45,11 +47,13 @@
     │   └── tray_icon.svg
     ├── icons.py
     ├── macos.py
+    ├── companion.py
     ├── models.py
     ├── scheduler.py
     ├── storage.py
     └── ui
         ├── __init__.py
+        ├── companion_chat.py
         ├── dashboard_window.py
         ├── desktop_pet.py
         ├── reminder_dialog.py
@@ -73,6 +77,35 @@ python -m watermeal_agent
 ```
 
 程序启动后会直接打开主面板；关闭窗口后，应用仍会常驻后台。
+
+## LLM 对话配置（可选）
+
+在设置里勾选“启用 LLM 情绪对话”后，聊天将优先走 LLM。
+
+推荐直接编辑项目根目录下的 `.env`（程序启动会自动读取）：
+
+```bash
+OPENAI_API_KEY=你的key
+WATERMEAL_OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+WATERMEAL_LLM_MODEL=qwen-plus
+```
+
+需要环境变量：
+
+```bash
+export OPENAI_API_KEY="你的key"
+```
+
+可选变量：
+
+```bash
+export WATERMEAL_OPENAI_API_KEY="你的key"
+export WATERMEAL_OPENAI_BASE_URL="https://api.openai.com/v1"
+export WATERMEAL_LLM_MODEL="gpt-4o-mini"
+```
+
+说明：
+- 当前调试模式下，LLM 失败不会回退本地规则回复，会直接在聊天窗口显示 `[LLM错误] ...`
 
 首次运行后会在 `~/Library/Application Support/WaterMealAgent/` 下生成：
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -23,7 +25,7 @@ class SettingsWindow(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Water Meal Agent 设置")
-        self.resize(380, 280)
+        self.resize(400, 360)
         self.setStyleSheet(_settings_stylesheet())
 
         self.water_interval_input = QSpinBox()
@@ -43,6 +45,9 @@ class SettingsWindow(QWidget):
         self.native_notifications_input = QCheckBox("启用 macOS 原生通知")
         self.launch_at_login_input = QCheckBox("登录时自动启动")
         self.desktop_pet_input = QCheckBox("启用桌面宠物")
+        self.llm_chat_input = QCheckBox("启用 LLM 情绪对话")
+        self.llm_model_input = QLineEdit()
+        self.llm_model_input.setPlaceholderText("gpt-4o-mini")
 
         self.status_label = QLabel("")
 
@@ -55,6 +60,8 @@ class SettingsWindow(QWidget):
         form.addRow("午饭时间", self.lunch_time_input)
         form.addRow("晚饭时间", self.dinner_time_input)
         form.addRow("", self.desktop_pet_input)
+        form.addRow("", self.llm_chat_input)
+        form.addRow("LLM 模型", self.llm_model_input)
         form.addRow("", self.native_notifications_input)
         form.addRow("", self.launch_at_login_input)
 
@@ -75,6 +82,16 @@ class SettingsWindow(QWidget):
         self.lunch_time_input.setText(config.lunch_time)
         self.dinner_time_input.setText(config.dinner_time)
         self.desktop_pet_input.setChecked(config.desktop_pet_enabled)
+        self.llm_chat_input.setChecked(config.llm_chat_enabled)
+        self.llm_model_input.setText(config.llm_model)
+        env_model = (os.getenv("WATERMEAL_LLM_MODEL") or "").strip()
+        if env_model:
+            self.llm_model_input.setText(env_model)
+            self.llm_model_input.setEnabled(False)
+            self.llm_model_input.setToolTip("由环境变量 WATERMEAL_LLM_MODEL 控制")
+        else:
+            self.llm_model_input.setEnabled(True)
+            self.llm_model_input.setToolTip("")
         self.native_notifications_input.setChecked(config.native_notifications_enabled)
         self.launch_at_login_input.setChecked(config.launch_at_login)
 
@@ -99,6 +116,8 @@ class SettingsWindow(QWidget):
             native_notifications_enabled=self.native_notifications_input.isChecked(),
             launch_at_login=self.launch_at_login_input.isChecked(),
             desktop_pet_enabled=self.desktop_pet_input.isChecked(),
+            llm_chat_enabled=self.llm_chat_input.isChecked(),
+            llm_model=self.llm_model_input.text().strip() or "gpt-4o-mini",
         )
         self.config_saved.emit(config)
         self.close()

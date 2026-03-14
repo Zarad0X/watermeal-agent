@@ -15,14 +15,19 @@ def now_local() -> datetime:
     return datetime.now().astimezone()
 
 
-def parse_clock(value: str) -> time:
-    hour_text, minute_text = value.split(":", maxsplit=1)
-    return time(hour=int(hour_text), minute=int(minute_text))
+def parse_clock(value: str, fallback: str = "12:00") -> time:
+    parsed = _try_parse_clock(value)
+    if parsed:
+        return parsed
+    parsed_fallback = _try_parse_clock(fallback)
+    if parsed_fallback:
+        return parsed_fallback
+    return time(hour=12, minute=0)
 
 
-def combine_today(clock_text: str) -> datetime:
+def combine_today(clock_text: str, fallback: str = "12:00") -> datetime:
     current = now_local()
-    clock = parse_clock(clock_text)
+    clock = parse_clock(clock_text, fallback=fallback)
     return current.replace(
         hour=clock.hour,
         minute=clock.minute,
@@ -36,7 +41,12 @@ def serialize_dt(value: datetime | None) -> str | None:
 
 
 def deserialize_dt(value: str | None) -> datetime | None:
-    return datetime.fromisoformat(value) if value else None
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
 
 
 def ensure_today(state: AppState, config: AppConfig) -> bool:
@@ -48,8 +58,8 @@ def ensure_today(state: AppState, config: AppConfig) -> bool:
     state.next_water_due_at = serialize_dt(
         now_local() + timedelta(minutes=config.water_interval_minutes)
     )
-    state.lunch_due_at = serialize_dt(combine_today(config.lunch_time))
-    state.dinner_due_at = serialize_dt(combine_today(config.dinner_time))
+    state.lunch_due_at = serialize_dt(combine_today(config.lunch_time, fallback="12:00"))
+    state.dinner_due_at = serialize_dt(combine_today(config.dinner_time, fallback="18:30"))
     state.snoozed_until = {"water": None, "lunch": None, "dinner": None}
     state.reminder_cooldown_until = {"water": None, "lunch": None, "dinner": None}
     return True
@@ -64,17 +74,17 @@ def initialize_schedule(state: AppState, config: AppConfig) -> bool:
         )
         changed = True
     if not state.lunch_due_at:
-        state.lunch_due_at = serialize_dt(combine_today(config.lunch_time))
+        state.lunch_due_at = serialize_dt(combine_today(config.lunch_time, fallback="12:00"))
         changed = True
     if not state.dinner_due_at:
-        state.dinner_due_at = serialize_dt(combine_today(config.dinner_time))
+        state.dinner_due_at = serialize_dt(combine_today(config.dinner_time, fallback="18:30"))
         changed = True
     return changed
 
 
 def sync_meal_schedule(state: AppState, config: AppConfig) -> None:
-    state.lunch_due_at = serialize_dt(combine_today(config.lunch_time))
-    state.dinner_due_at = serialize_dt(combine_today(config.dinner_time))
+    state.lunch_due_at = serialize_dt(combine_today(config.lunch_time, fallback="12:00"))
+    state.dinner_due_at = serialize_dt(combine_today(config.dinner_time, fallback="18:30"))
 
 
 def reset_water_schedule(state: AppState, config: AppConfig) -> None:
@@ -275,6 +285,18 @@ def _normalize_state_maps(state: AppState) -> None:
     for key in (REMINDER_WATER, REMINDER_LUNCH, REMINDER_DINNER):
         state.snoozed_until.setdefault(key, None)
         state.reminder_cooldown_until.setdefault(key, None)
+
+
+def _try_parse_clock(value: str) -> time | None:
+    try:
+        hour_text, minute_text = str(value).split(":", maxsplit=1)
+        hour = int(hour_text)
+        minute = int(minute_text)
+    except (ValueError, TypeError):
+        return None
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
+    return time(hour=hour, minute=minute)
 
 
 def _meal_state_text(done: bool, skipped: bool) -> str:

@@ -11,3 +11,5 @@ dist/
 .mypy_cache/
 
 *.log
+.env
+.env.local
